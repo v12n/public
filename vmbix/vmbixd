@@ -1,0 +1,74 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          vmbixd
+# Required-Start:    $network
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: zabbix 2 vmware-api proxy initscript
+# Description:       Provides a bridge between zabbix checks and vmware api. 
+#                    placed in /etc/init.d.
+### END INIT INFO
+
+test -f /usr/local/sbin/vmbixd || exit 0
+
+
+NAME=vmbixd
+DESC="zabbix2vmware daemon"
+PIDFILE=/var/run/$NAME.pid
+DAEMON=/usr/local/sbin/$NAME
+CONFIGFILE=/etc/vmbix/vmbix.conf
+DAEMON_ARGS="-c $CONFIGFILE -f $PIDFILE"
+SCRIPTNAME=/etc/init.d/$NAME
+
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
+
+# verify readable and source 
+[ -r /lib/lsb/init-functions ] && . /lib/lsb/init-functions
+
+# Function that starts the daemon/service
+do_start()
+{
+	start-stop-daemon --start --make-pidfile --pidfile $PIDFILE \
+			--exec $DAEMON -- $DAEMON_ARGS 
+}
+# Function that stops the daemon/service
+do_stop()
+{
+	
+	start-stop-daemon --stop --retry=30 --pidfile $PIDFILE
+	#rm -f $PIDFILE
+}
+# Function to check status
+do_status()
+{
+	status_of_proc "$DAEMON" "$NAME" && return  0 || return $?
+}
+
+case "$1" in
+start)
+	log_daemon_msg "Starting $DESC" "$NAME"
+	[ ! -r $PIDFILE ] && do_start || do_status
+	log_end_msg $?
+	;;
+stop)
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	[ -r $PIDFILE ] && do_stop || do_status	
+	log_end_msg $?
+	;;
+status)
+	do_status
+       ;;
+restart)
+	log_daemon_msg "Restarting $DESC" "$NAME"
+	do_stop
+	do_start
+	log_end_msg $?
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|restart|status}" >&2
+	exit 3
+	;;
+esac
+
