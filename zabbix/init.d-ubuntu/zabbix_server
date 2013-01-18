@@ -1,0 +1,76 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          zabbix-server
+# Required-Start:    $network
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: zabbix server initscript 
+# Description:       Start/Stop script for Zabbix server daemon
+#                    placed in /etc/init.d.
+### END INIT INFO
+
+NAME=zabbix_server
+DAEMON=/usr/local/sbin/$NAME
+DESC="Zabbix server daemon"
+PIDFILE=/var/run/$NAME.pid
+
+# Exit if the package is not installed
+test -f $DAEMON || exit 0
+
+# verify readable and source 
+[ -r /lib/lsb/init-functions ] && . /lib/lsb/init-functions
+
+# Function that starts the daemon/service
+do_start()
+{
+        start-stop-daemon --start --make-pidfile --pidfile $PIDFILE --exec $DAEMON
+}
+# Function that stops the daemon/service
+do_stop()
+{
+	#start-stop-daemon --stop --pidfile $PIDFILE --retry=TERM/10/KILL/5
+        start-stop-daemon --stop --oknodo --exec $DAEMON --retry=TERM/10/KILL/5
+}
+do_status()
+{
+	[ -f /tmp/zabbix_server.pid ] && return 0 || return $?
+}
+
+case "$1" in
+start)
+        log_daemon_msg "Starting $DESC" "$NAME"
+        do_status
+        case "$?" in
+                0) log_daemon_msg "$NAME is already running" ;;
+                1) do_start
+        esac
+        log_end_msg $?
+        ;;
+stop)
+        log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop 
+        log_end_msg $?
+        ;;
+restart)
+	do_status
+	case "$?" in
+		0) log_daemon_msg "Restarting $DESC" "$NAME" && do_stop && do_start ;;
+		1) log_daemon_msg "$NAME currently not running. Starting..." && do_start ;;
+	esac
+        log_end_msg $?
+        ;;
+status)
+	do_status
+	case "$?" in
+		0) log_success_msg "$NAME is running" && return 0;;
+		1) log_failure_msg "$NAME is not running" && return 1;;
+	esac
+	;;
+  *)
+        echo "Usage: $SCRIPTNAME {start|stop|restart|status}" >&2
+        exit 3
+        ;;
+esac
+
+exit 0
